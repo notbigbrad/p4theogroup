@@ -6,6 +6,7 @@
 #include <utility>
 
 #include "./constants.hpp"
+#include "./butcher_tableau.hpp"
 
 using namespace std;
 using namespace project;
@@ -13,7 +14,10 @@ using namespace project;
 namespace project
 {
     // POSSIBLY BREAK THESE OUT INTO SEPARATE FILES AND HAVE THEM BE PARAMETERS IN FUNCTION CALL
-    long double rho_PeS(long double P, long double n, long double K) { return powl(P/K,n / (n+1.0L)); }
+    long double equation_of_state(long double P, long double n, long double K)
+    {
+        return powl(P/K, n / (n+1.0L)); // Basic polytropic equation of state
+    };
     long double mass_continuity(long double r, long double rho)
     {
         return __4pi * r * r * rho;
@@ -26,66 +30,31 @@ namespace project
         return -(__gravitation * term1 * term2) / term3;
     };
 
-    pair<vector<long double>, vector<long double>> solve_TOV(long double h, long double n, long double P_c, long double K)
+    // Apply the equation of state to create generic first order couple ODEs for the solver
+    // Solver must take ODEs in this form
+
+    const long double K_white_dwarf_non_rel = 1.0L / 20.0L * powl((3.0L / __pi), (2.0L / 3.0L)) * ((__planck * __planck) / __mass_electron) * powl((1.0L / (2.0L * __mass_proton)), (5.0L / 3.0L));
+    const long double n_white_dwarf_non_rel = 1.5L;
+
+    // F1 = dy1/dt(t, y1, y2)
+    long double generic_first_order_ODE_1(long double r, long double M, long double P)
     {
-        // Boolean turns true when pressure drops below 0 and this determines the radial extent of star
-        bool solved = false;
+        return mass_continuity(r, equation_of_state(P, n_white_dwarf_non_rel, K_white_dwarf_non_rel));
+    };
+    // F2 = dy2/dt(t, y1, y2)
+    long double generic_first_order_ODE_2(long double r, long double M, long double P)
+    {
+        return tolman_oppenheimer_volkoff(r, P, M, equation_of_state(P, n_white_dwarf_non_rel, K_white_dwarf_non_rel));
+    };
 
-        // initial conditions
-        // Radius vector starting from initial step size to avoid singularity CHECK IF REQUIRED IN TOV
-        vector<long double> _r = {h};
-        vector<long double> _P = {P_c};
-        vector<long double> _M = {0.0L};
+    // Use generic solver to solve TOV
+    pair<vector<long double>, vector<long double>> solve_TOV(vector<long double> inital_conditions, long double h, long double n, long double P_c, long double K)
+    {
+        // Initial conditions to turn ODE into IVP
+        long double P_c = P_c;
+        long double M   = 0.0L;
+    };
 
-        while (!solved)
-        {
-            // Grab radius and pressure for THIS step
-            long double r = _r.back();
-            long double P = _P.back();
-
-            _r.push_back(r + h); // Append radius of NEXT step THIS MAY BE INCORRECT, THINK r DECLARATION SHOULD FOLLOW THIS MATHEMATICALLY
-
-            // Calculate density from EOS
-            long double rho = powl((P / K), (n / (n + 1.0L)));
-
-            // Initialise Runge-Kutta variables
-            long double M_k1, M_k2, M_k3, M_k4;
-            long double P_k1, P_k2, P_k3, P_k4;
-
-            // Perform RK4 for mass
-            M_k1 = mass_continuity(r         , rho) * h;
-            M_k2 = mass_continuity(r + 0.5L*h, rho) * h;
-            M_k3 = mass_continuity(r + 0.5L*h, rho) * h;
-            M_k4 = mass_continuity(r + h     , rho) * h;
-
-            // POSSIBLE IMPROVEMENT USING SUBSTEPS OF PRESSURE ASWELL INSTEAD OF USING DENSITY
-            // M_k1 = __4pi * r * r                    * rho_PeS(P, n, K);
-            // M_k2 = __4pi * powl((r + h/2.0L), 2.0L) * rho_PeS(P, n, K);
-            // M_k3 = __4pi * powl((r + h/2.0L), 2.0L) * rho_PeS(P, n, K);
-            // M_k4 = __4pi * powl((r + h), 2.0L)      * rho_PeS(P, n, K);
-
-            // Update mass vector
-            _M.push_back(_M.back() + (1.0L/6.0L) * (M_k1 + 2.0L*M_k2 + 2.0L*M_k3 + M_k4));
-            
-            // Perform RK4 for pressure
-            P_k1 = tolman_oppenheimer_volkoff(r             , P               , _M.back(), rho) * h;
-            P_k2 = tolman_oppenheimer_volkoff(r + 0.5L * h  , P + 0.5L * P_k1 , _M.back(), rho) * h;
-            P_k3 = tolman_oppenheimer_volkoff(r + 0.5L * h  , P + 0.5L * P_k2 , _M.back(), rho) * h;
-            P_k4 = tolman_oppenheimer_volkoff(r + h         , P + P_k3        , _M.back(), rho) * h;
-
-            // Update pressure vector
-            _P.push_back(P + (1.0L/6.0L) * (P_k1 + 2.0L * P_k2 + 2.0L * P_k3 + P_k4));
-
-            // If pressure is negative then set to solved and remove next r value MAY ALSO REMOVE NEGATIVE PRESSURE VALUE
-            if (_P.back() <= 0 || isnan(_P.back()))
-            {
-                solved = true;
-                _r.pop_back();
-            }
-        }
-
-        return {_r, _P};
-    }
     // void MR_TOV_over_density_logspace(long double n, long double h, long double K, long double rho_min, long double rho_max, int density_runs)
     // {
     //     vector<long double> _xi;
