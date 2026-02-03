@@ -5,19 +5,19 @@ namespace butcher_tableau
 {
     // RK4 Butcher Tableau, Stepping Factors, and Summing Weights
     // [step][weight]
-    long double tableau4[4][4] =
+    inline long double tableau4[4][4] =
     {
-        { 0   , 0   , 0   , 0   },
-        { 1/2 , 0   , 0   , 0   },
-        { 0   , 1/2 , 0   , 0   },
-        { 0   , 0   , 1   , 0   }
+        { 0.0L , 0.0L , 0.0L , 0.0L },
+        { 0.5L , 0.0L , 0.0L , 0.0L },
+        { 0.0L , 0.5L , 0.0L , 0.0L },
+        { 0.0L , 0.0L , 1.0L , 0.0L }
     };
-    long double stepping4[4] =
+    inline long double stepping4[4] =
     {
-        0   , 1/2 , 1/2 , 0
+        0.0L , 0.5L , 0.5L , 0.0L
     };
-    long double weighting4[4] =
+    inline long double weighting4[4] =
     {
-        1/6 , 1/3 , 1/3 , 1/6
+        1.0L/6.0L , 1.0L/3.0L , 1.0L/3.0L , 1.0L/6.0L
     };
 }

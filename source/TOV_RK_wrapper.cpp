@@ -42,37 +42,37 @@ namespace project
     const long double n_white_dwarf_non_rel = 1.5L;
 
     // Re-wrap functions to be in the desired generic form
-    long double generic_first_order_ODE_1(long double r, long double y[2])
+    long double generic_first_order_ODE_1(long double r, array<long double, 2> y)
     {
         return mass_continuity(r, equation_of_state(y[1], n_white_dwarf_non_rel, K_white_dwarf_non_rel));
     }
-    long double generic_first_order_ODE_2(long double r, long double y[2])
+    long double generic_first_order_ODE_2(long double r, array<long double, 2> y)
     {
         return tolman_oppenheimer_volkoff(r, y[1], y[0], equation_of_state(y[1], n_white_dwarf_non_rel, K_white_dwarf_non_rel));
     }
 
     // Solved criterion must also take same input form as ODEs but must be boolean valued
-    bool generic_criterion( long double r, long double y[2])
+    bool TOV_criterion( long double r, array<long double, 2> y)
     {
-        if (y[0] <= 0 || isnan(y[0])) { return true; }
+        if (y[0] <= 0 || isnan(y[0]) || r > 1000000000) { return true; }
         else { return false; }
     }
 
     // Use generic solver to solve TOV
-    pair< vector<long double>, array<vector<long double>, 2> >  TOV_RK_wrapper(long double P_c)
+    pair< vector<long double>, array<vector<long double>, 2> >  TOV_RK_wrapper(long double h, long double P_c)
     {
         // Initial conditions to turn ODE into IVP
         long double M_c = 0.0L;
         long double init[2] = { M_c, P_c };
 
         // List of ODEs
-        function<long double( long double r, long double y[2] )> ODES[2] = {generic_first_order_ODE_1, generic_first_order_ODE_2};
+        array<function<long double( long double r, array<long double, 2> y )>, 2> ODES = {&generic_first_order_ODE_1, &generic_first_order_ODE_2};
 
         // Solved criterion
-        function<bool( long double r, long double y[2] )> solved_criterion = generic_criterion;
+        function<bool( long double r, array<long double, 2> y )> solved_criterion = TOV_criterion;
 
         // Apply RK scheme to problem
-        auto t = Runge_Kutta::runge_kutta_scheme<4, 2>( init, ODES, butcher_tableau::tableau4, butcher_tableau::stepping4, butcher_tableau::weighting4, 0.01, solved_criterion);
+        auto t = Runge_Kutta::runge_kutta_scheme( init, ODES, butcher_tableau::tableau4, butcher_tableau::stepping4, butcher_tableau::weighting4, h, solved_criterion);
 
         return t;
     }
@@ -93,13 +93,28 @@ namespace project
             array<vector<long double>, 2> y;
 
             // Unwrap answer to ODE
-            tie( r, y ) = TOV_RK_wrapper(P_c);
+            tie( r, y ) = TOV_RK_wrapper(1000000.0L, P_c);
 
             // Grab desired values
             long double R = r.back();
             long double M = y[0].back();
 
             cout << M << "," << R << endl;
+        }
+    }
+
+    void TOV_Pr(long double h, long double P_c)
+    {
+        vector<long double> r;
+        array<vector<long double>, 2> y;
+
+        // Unwrap answer to ODE
+        tie(r, y) = TOV_RK_wrapper(1000000.0L, P_c);
+
+        // Grab desired values
+        for (int j = 0; j < size(y[0]); j++)
+        {
+            cout << to_string(r[j]) + "," + to_string(y[0][j]) + "," + to_string(y[1][j]) << endl;
         }
     }
 }
