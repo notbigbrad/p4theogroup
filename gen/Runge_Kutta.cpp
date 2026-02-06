@@ -59,9 +59,9 @@ namespace Runge_Kutta
                 for (int ODE = 0; ODE < ODE_num; ODE++)
                 {
                     // Get sum from butcher tableau and prior steps
-                    array<long double, ODE_num> sums = {0};
                     for (int sub_ODE = 0; sub_ODE < ODE_num; sub_ODE++)
                     {
+                        array<long double, ODE_num> sums = {0};
                         // Sum for this ODE to encapsulate all prior steps applied via butcher tableau
                         for (int sub_step = 0; sub_step < step; sub_step++)
                         {
