@@ -7,7 +7,6 @@
 #include <functional>
 
 #include "./constants.hpp"
-#include "../gen/butcher_tableau.hpp"
 #include "../gen/Runge_Kutta.hpp"
 
 using namespace std;
@@ -72,7 +71,7 @@ namespace project
         function<bool( long double r, array<long double, 2> y )> solved_criterion = TOV_criterion;
 
         // Apply RK scheme to problem
-        auto t = Runge_Kutta::runge_kutta_scheme( init, ODES, butcher_tableau::tableau4, butcher_tableau::stepping4, butcher_tableau::weighting4, h, solved_criterion);
+        auto t = Runge_Kutta::runge_kutta_scheme( h, init, ODES, solved_criterion);
 
         return t;
     }

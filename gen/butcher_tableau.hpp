@@ -5,18 +5,18 @@ namespace butcher_tableau
 {
     // RK4 Butcher Tableau, Stepping Factors, and Summing Weights
     // [step][weight]
-    inline long double tableau4[4][4] =
+    const long double tableau4[4][4] =
     {
         { 0.0L , 0.0L , 0.0L , 0.0L },
         { 0.5L , 0.0L , 0.0L , 0.0L },
         { 0.0L , 0.5L , 0.0L , 0.0L },
         { 0.0L , 0.0L , 1.0L , 0.0L }
     };
-    inline long double stepping4[4] =
+    const long double stepping4[4] =
     {
         0.0L , 0.5L , 0.5L , 0.0L
     };
-    inline long double weighting4[4] =
+    const long double weighting4[4] =
     {
         1.0L/6.0L , 1.0L/3.0L , 1.0L/3.0L , 1.0L/6.0L
     };

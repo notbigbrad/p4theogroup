@@ -9,8 +9,6 @@ namespace Runge_Kutta
 {
     //// GENERIC RUNGE-KUTTA SCHEME
     // template<int RK_num, int ODE_num>                                                               // Template for differing RK schemes and ODE counts
-    constexpr int ODE_num = 2;
-    constexpr int RK_num = 4;
     pair< vector<long double>, array<vector<long double>, ODE_num> >                                // Returns value of each solved ODE for all time steps
     runge_kutta_scheme
     (

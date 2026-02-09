@@ -7,7 +7,6 @@
 #include <functional>
 
 #include "./constants.hpp"
-#include "../gen/butcher_tableau.hpp"
 #include "../gen/Runge_Kutta.hpp"
 
 using namespace std;
@@ -26,26 +25,25 @@ namespace project
     // Re-wrap functions to be in the desired generic form
     long double theta(long double xi, array<long double, 2> y)
     {
-        return y[1];
+        return y[0];
     }
     std::function<long double(long double, std::array<long double, 2>)> get_dtheta(long double n)
     {
         return [n](long double xi, std::array<long double, 2> y) -> long double {
-            return -2.0L / xi * (powl(y[0], n) + xi * y[1]);
+            return -2.0L / xi * y[0] - (powl(y[1], n));
+            // return -2.0L / xi * (powl(y[1], n) + xi * y[0]);
         };
     }
 
     // Solved criterion must also take same input form as ODEs but must be boolean valued
     bool LE_criterion( long double xi, array<long double, 2> y)
     {
-        // if (y[0] <= 0 || isnan(y[0]) || xi > 20.0L) { return true; }
         if (xi > 20.0L) { return true; }
         else { return false; }
     }
     bool LE_criterion2( long double xi, array<long double, 2> y)
     {
-        if (y[0] <= 0 || isnan(y[0]) || xi > 20.0L) { return true; }
-        // if (xi > 20.0L) { return true; }
+        if (y[1] <= 0 || isnan(y[0]) || xi > 20.0L) { return true; }
         else { return false; }
     }
 
@@ -56,16 +54,16 @@ namespace project
         long double h = 0.01L;
         long double theta_0 = {1.0L - (h * h) / 6.0L}; // Avoid singularity by using xi0=h
         long double dtheta_0 = -h / 3.0L;
-        long double init[2] = { theta_0, dtheta_0 };
+        long double init[2] = { dtheta_0, theta_0 };
 
         // List of ODEs
-        array<function<long double( long double r, array<long double, 2> y )>, 2> ODES = {&theta, get_dtheta(n)};
+        array<function<long double( long double r, array<long double, 2> y )>, 2> ODES = {get_dtheta(n), &theta};
 
         // Solved criterion
         function<bool( long double r, array<long double, 2> y )> solved_criterion = LE_criterion;
 
         // Apply RK scheme to problem
-        auto t = Runge_Kutta::runge_kutta_scheme( init, ODES, butcher_tableau::tableau4, butcher_tableau::stepping4, butcher_tableau::weighting4, h, solved_criterion);
+        auto t = Runge_Kutta::runge_kutta_scheme( h, init, ODES, solved_criterion);
 
         return t;
     }
@@ -75,16 +73,16 @@ namespace project
         long double h = 0.01L;
         long double theta_0 = {1.0L - (h * h) / 6.0L}; // Avoid singularity by using xi0=h
         long double dtheta_0 = -h / 3.0L;
-        long double init[2] = { theta_0, dtheta_0 };
+        long double init[2] = { dtheta_0, theta_0 };
 
         // List of ODEs
-        array<function<long double( long double r, array<long double, 2> y )>, 2> ODES = {&theta, get_dtheta(n)};
+        array<function<long double( long double r, array<long double, 2> y )>, 2> ODES = {get_dtheta(n), &theta};
 
         // Solved criterion
         function<bool( long double r, array<long double, 2> y )> solved_criterion = LE_criterion2;
 
         // Apply RK scheme to problem
-        auto t = Runge_Kutta::runge_kutta_scheme( init, ODES, butcher_tableau::tableau4, butcher_tableau::stepping4, butcher_tableau::weighting4, h, solved_criterion);
+        auto t = Runge_Kutta::runge_kutta_scheme( h, init, ODES, solved_criterion);
 
         return t;
     }
@@ -141,7 +139,7 @@ namespace project
         // Grab desired values
         for (int j = 0; j < size(y[0]); j++)
         {
-            csv[j] += to_string(r[j]) + "," + to_string(y[0][j]);
+            csv[j] += to_string(r[j]) + "," + to_string(y[1][j]);
         }
         
         for (long double i = n_min + n_h; i <= n_max; i += n_h)
@@ -153,9 +151,9 @@ namespace project
             tie( r, y ) = LE_RK_wrapper(i);
 
             // Grab desired values
-            for (int j = 0; j < size(y[0]); j++)
+            for (int j = 0; j < size(y[1]); j++)
             {
-                csv[j] += "," + to_string(y[0][j]);
+                csv[j] += "," + to_string(y[1][j]);
             }
         }
         for (auto& entry : csv)
