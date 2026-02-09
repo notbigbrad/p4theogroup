@@ -99,6 +99,14 @@ namespace Runge_Kutta
                     _y_n[ODE].push_back(y_prior + h * sum); // Find y_n+1
                 };
 
+                // FIX THIS
+                // Make list of latest values, transposer
+                for (int ODE = 0; ODE < ODE_num; ODE++)
+                {
+                    // Grab last point in ODE
+                    yT[ODE] = _y_n[ODE].back();
+                };
+
                 // Solved criterion
                 if (solved(t, yT))
                 {

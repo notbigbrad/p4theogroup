@@ -20,4 +20,17 @@ namespace butcher_tableau
     {
         1.0L/6.0L , 1.0L/3.0L , 1.0L/3.0L , 1.0L/6.0L
     };
+    // Euler Method / RK1
+    const long double tableau_euler[1][1] =
+    {
+        { 0.0L }
+    };
+    const long double stepping_euler[1] =
+    {
+        0.0L
+    };
+    const long double weighting_euler[1] =
+    {
+        1.0L
+    };
 }
