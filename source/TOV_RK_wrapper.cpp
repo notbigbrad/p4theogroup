@@ -71,7 +71,7 @@ namespace project
         function<bool( long double r, array<long double, 2> y )> solved_criterion = TOV_criterion;
 
         // Apply RK scheme to problem
-        auto t = Runge_Kutta::runge_kutta_scheme( h, init, ODES, solved_criterion);
+        auto t = Runge_Kutta::RK4_2( h, init, ODES, solved_criterion);
 
         return t;
     }

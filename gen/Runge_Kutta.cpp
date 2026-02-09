@@ -1,7 +1,6 @@
 #include <vector>
 #include <array>
 #include <functional>
-#include <iostream>
 
 using namespace std;
 
@@ -12,19 +11,22 @@ namespace Runge_Kutta
     class Runge_Kutta_Scheme
     {
     public:
+        using Tableau = array<array<long double, RK_num>, RK_num>;
+        using Chart = array<long double, RK_num>;
         Runge_Kutta_Scheme(
-            long double tableau[RK_num][RK_num],                                                      // Butcher tableau
-            long double stepping_factors[RK_num],                                                     // Time stepping factors
-            long double weighting_factors[RK_num],                                                    // Weighted sum factors
-        )
-        {
-        }
-        pair<vector<long double>, array<vector<long double>, ODE_num>> // Returns value of each solved ODE for all time steps
+            const Tableau& given_tableau,                                                               // Butcher tableau
+            const Chart& given_stepping_factors,                                                        // Time stepping factors
+            const Chart& given_weighting_factors                                                        // Weighted sum factors
+        ) : _tableau(given_tableau),
+            _stepping_factors(given_stepping_factors),
+            _weighting_factors(given_weighting_factors)
+        {}
+        pair<vector<long double>, array<vector<long double>, ODE_num>>                                   // Returns value of each solved ODE for all time steps
         solve(
-            long double h,                                                                            // Stepping size
-            long double initial_conditions[ODE_num],                                                  // Initial conditions
-            array<function<long double(long double r, array<long double, ODE_num> y)>, ODE_num> ODES, // Array of ODEs
-            function<bool(long double r, array<long double, ODE_num> y)> solved                       // Condition for ODE being solved
+            long double h,                                                                               // Stepping size
+            long double initial_conditions[ODE_num],                                                     // Initial conditions
+            array<function<long double(long double r, array<long double, ODE_num> y)>, ODE_num> ODES,    // Array of ODEs
+            function<bool(long double r, array<long double, ODE_num> y)> solved                          // Condition for ODE being solved
         )
         {
             // Boolean state determined by solved() function will stop solver
@@ -77,11 +79,11 @@ namespace Runge_Kutta
                             for (int sub_step = 0; sub_step < step; sub_step++)
                             {
                                 // Add new value for each y to list
-                                y_for_each_ODE[sub_ODE] += h * tableau[step][sub_step] * K_values[sub_step][sub_ODE];
+                                y_for_each_ODE[sub_ODE] += h * _tableau[step][sub_step] * K_values[sub_step][sub_ODE];
                             };
                         };
                         // Apply applicable ODE, tableau, and stepping to get next value
-                        K_values[step][ODE] = ODES[ODE](t + h * stepping_factors[step], y_for_each_ODE);
+                        K_values[step][ODE] = ODES[ODE](t + h * _stepping_factors[step], y_for_each_ODE);
                     };
                 };
 
@@ -92,7 +94,7 @@ namespace Runge_Kutta
                     long double sum = 0;
                     for (int step = 0; step < RK_num; step++)
                     {
-                        sum += weighting_factors[step] * K_values[step][ODE];
+                        sum += _weighting_factors[step] * K_values[step][ODE];
                     };
                     _y_n[ODE].push_back(y_prior + h * sum); // Find y_n+1
                 };
@@ -114,34 +116,48 @@ namespace Runge_Kutta
             return {_t, _y_n};
         };
         private:
-            const long double tableau[RK_num][RK_num],   // Butcher tableau
-            const long double stepping_factors[RK_num],  // Time stepping factors
-            const long double weighting_factors[RK_num], // Weighted sum factors
+            Tableau _tableau;           // Butcher tableau
+            Chart _stepping_factors;    // Time stepping factors
+            Chart _weighting_factors;   // Weighted sum factors
     };
 
     // Default Tableau for RK4 Scheme
-    long double default_tableau4[4][4] =
-    {
-        { 0.0L , 0.0L , 0.0L , 0.0L },
-        { 0.5L , 0.0L , 0.0L , 0.0L },
-        { 0.0L , 0.5L , 0.0L , 0.0L },
-        { 0.0L , 0.0L , 1.0L , 0.0L }
-    };
-    long double default_stepping4[4] =
-    {
+    constexpr Runge_Kutta_Scheme<4, 1>::Tableau default_tableau4 =
+    {{
+        {{ 0.0L , 0.0L , 0.0L , 0.0L }},
+        {{ 0.5L , 0.0L , 0.0L , 0.0L }},
+        {{ 0.0L , 0.5L , 0.0L , 0.0L }},
+        {{ 0.0L , 0.0L , 1.0L , 0.0L }}
+    }};
+    constexpr Runge_Kutta_Scheme<4, 1>::Chart default_stepping4 =
+    {{
         0.0L , 0.5L , 0.5L , 0.0L
-    };
-    long double default_weighting4[4] =
-    {
+    }};
+    constexpr Runge_Kutta_Scheme<4, 1>::Chart default_weighting4 =
+    {{
         1.0L/6.0L , 1.0L/3.0L , 1.0L/3.0L , 1.0L/6.0L
-    };
+    }};
 
     // Default Solver for RK4 for Single and Pair of ODE Cases
-    Runge_Kutta_Scheme<4, 1> _RK4(default_tableau4, default_stepping4, default_weighting4);
-    function<pair<vector<long double>, array<vector<long double>, 1>>(
-        long double h,                                                       // Stepping size
-        long double*,                                                        // Initial conditions
-        array<function<long double(long double, array<long double, 1>)>, 1>, // Array of ODEs
-        function<bool(long double, array<long double, 1>)>                   // Condition for ODE being solved
-        )> RK4 = _RK4.solve;
+    static Runge_Kutta_Scheme<4, 1> _RK4(default_tableau4, default_stepping4, default_weighting4);
+    static Runge_Kutta_Scheme<4, 2> _RK4_2(default_tableau4, default_stepping4, default_weighting4);
+
+    pair<vector<long double>, array<vector<long double>, 1>> RK4(
+        long double h,                                                            // Stepping size
+        long double initial_conditions[1],                                        // Initial conditions
+        array<function<long double(long double, array<long double, 1>)>, 1> ODES, // Array of ODEs
+        function<bool(long double, array<long double, 1>)> solved                 // Condition for ODE being solved
+    )
+    {
+        return _RK4.solve( h, initial_conditions, ODES, solved);                  // Return value from predefined solver
+    };
+    pair<vector<long double>, array<vector<long double>, 2>> RK4_2(
+        long double h,                                                            // Stepping size
+        long double initial_conditions[2],                                        // Initial conditions
+        array<function<long double(long double, array<long double, 2>)>, 2> ODES, // Array of ODEs
+        function<bool(long double, array<long double, 2>)> solved                 // Condition for ODE being solved
+    )
+    {
+        return _RK4_2.solve( h, initial_conditions, ODES, solved);                // Return value from predefined solver
+    };
 }
