@@ -117,7 +117,7 @@ namespace project
         tie(r, y) = TOV_RK_wrapper(h, P_c, equation_of_state);
 
         // Grab desired values
-        for (int j = 0; j < size(y[0]); j++)
+        for (int j = 0; j < size(y[1]); j++)
         {
             cout << to_string(r[j]) + "," + to_string(y[0][j]) + "," + to_string(y[1][j]) << endl;
         }
