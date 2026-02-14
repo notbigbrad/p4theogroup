@@ -5,6 +5,8 @@
 #include <thread>
 #include <utility>
 #include <functional>
+#include <string>
+#include <fstream>
 
 #include "./equations_of_state.hpp"
 #include "../gen/Runge_Kutta.hpp"
@@ -16,6 +18,8 @@ using namespace EoS;
 namespace project
 {
     //// Wrapper to use the generic runge kutta scheme in the fourth order to solve TOV
+
+
 
     // Equations
     constexpr long double mass_continuity(long double r, long double rho)
@@ -29,6 +33,8 @@ namespace project
         long double term3 = r * (r - 2.0L * __gravitation * M / __c2);
         return -(__gravitation * term1 * term2) / term3;
     }
+
+
 
     // Apply the equation of state to create generic first order couple ODEs for the solver
     // Solver must take ODEs in the form: F_n = dy_n/dt(r, {M, P})
@@ -49,10 +55,12 @@ namespace project
         };
     }
 
+
+
     // Solved criterion must also take same input form as ODEs but must be boolean valued
     bool TOV_criterion(long double r, array<long double, 2> y)
     {
-        if (y[1] <= 0 || isnan(y[1]) || r > 100000000000)
+        if (y[1] <= 0 || isnan(y[1]) || r > 1000000000000)
         {
             return true;
         }
@@ -62,11 +70,11 @@ namespace project
         }
     }
 
+
+
     // Use generic solver to solve TOV
     pair<vector<long double>, array<vector<long double>, 2>> TOV_RK_wrapper(long double h, long double P_c, function<long double(long double)> equation_of_state)
     {
-        
-
         // Initial conditions to turn ODE into IVP
         long double M_c = 0.0L;
         long double init[2] = {M_c, P_c};
@@ -83,8 +91,13 @@ namespace project
         return t;
     }
 
-    void TOV_mass_radius(long double P_c_min, long double P_c_max, int runs, function<long double(long double)> equation_of_state)
+
+
+    // Find mass-radius trend for many stars
+    void TOV_mass_radius(long double h, long double P_c_min, long double P_c_max, int runs, function<long double(long double)> equation_of_state, string f_name)
     {
+	ofstream file(f_name);
+
         vector<long double> P_c_list;
 
         for (int i = 0; i < runs; i++)
@@ -98,18 +111,23 @@ namespace project
             array<vector<long double>, 2> y;
 
             // Unwrap answer to ODE
-            tie(r, y) = TOV_RK_wrapper(1000000.0L, P_c, equation_of_state);
+            tie(r, y) = TOV_RK_wrapper(h, P_c, equation_of_state);
 
             // Grab desired values
             long double R = r.back();
             long double M = y[0].back();
 
-            cout << M << "," << R << endl;
+            file << M << "," << R << endl;
         }
     }
 
-    void TOV_Pr(long double h, long double P_c, function<long double(long double)> equation_of_state)
+
+
+    // Find pressure radius plot for a single star
+    void TOV_Pr(long double h, long double P_c, function<long double(long double)> equation_of_state, string f_name)
     {
+	ofstream file(f_name);
+
         vector<long double> r;
         array<vector<long double>, 2> y;
 
@@ -119,53 +137,7 @@ namespace project
         // Grab desired values
         for (int j = 0; j < size(y[0]); j++)
         {
-            cout << to_string(r[j]) + "," + to_string(y[0][j]) + "," + to_string(y[1][j]) << endl;
-        }
-    }
-
-    // Constant density solution
-    constexpr long double const_eq_of_state(long double P)
-    {
-        return 1000000;
-    }
-    long double generic_first_order_ODE_3(long double r, array<long double, 2> y)
-    {
-        return mass_continuity(r, const_eq_of_state(y[1]));
-    }
-    long double generic_first_order_ODE_4(long double r, array<long double, 2> y)
-    {
-        return tolman_oppenheimer_volkoff(r, y[1], y[0], const_eq_of_state(y[1]));
-    }
-    pair<vector<long double>, array<vector<long double>, 2>> TOV_RK_wrapper_const(long double h, long double P_c)
-    {
-        // Initial conditions to turn ODE into IVP
-        long double M_c = 0.0L;
-        long double init[2] = {M_c, P_c};
-
-        // List of ODEs
-        array<function<long double(long double r, array<long double, 2> y)>, 2> ODES = {&generic_first_order_ODE_3, &generic_first_order_ODE_4};
-
-        // Solved criterion
-        function<bool(long double r, array<long double, 2> y)> solved_criterion = TOV_criterion;
-
-        // Apply RK scheme to problem
-        auto t = Runge_Kutta::RK4_2(h, init, ODES, solved_criterion);
-
-        return t;
-    }
-
-    void TOV_Pr_const_rho(long double h, long double P_c)
-    {
-        vector<long double> r;
-        array<vector<long double>, 2> y;
-
-        // Unwrap answer to ODE
-        tie(r, y) = TOV_RK_wrapper_const(h, P_c);
-
-        // Grab desired values
-        for (int j = 0; j < size(y[0]); j++)
-        {
-            cout << to_string(r[j]) + "," + to_string(y[0][j]) + "," + to_string(y[1][j]) << endl;
+            file << to_string(r[j]) + "," + to_string(y[0][j]) + "," + to_string(y[1][j]) << endl;
         }
     }
 }
